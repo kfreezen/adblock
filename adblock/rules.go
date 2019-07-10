@@ -412,6 +412,10 @@ func matchOptsReferers(opts *RuleOpts, headers map[string][]string) {
 		return true
 	}
 
+	if headers == nil {
+		return false
+	}
+
 	accept := false
 	referer, exists := headers["Referer"]
 	if !exists {
