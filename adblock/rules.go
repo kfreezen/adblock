@@ -318,6 +318,7 @@ type Request struct {
 	// OriginDomain is matched against optional third-party rules.
 	OriginDomain string
 
+	// We can use the header map to match various options such as xmlhttprequest
 	Header map[string][]string
 
 	// Timeout is the maximum amount of time a single matching can take.
@@ -418,6 +419,39 @@ func matchOptsDomains(opts *RuleOpts, domain string) bool {
 	return accept
 }
 
+func matchOptsXmlHttpRequest(opts *RuleOpts, headers map[string][]string) bool {
+	if opts.XmlHttpRequest != nil {
+		matchXmlHttpRequest := *opts.XmlHttpRequest
+
+		// If no headers are specified, return a match for ~xmlhttprequest (false), and no match for xmlhttprequest (true)
+		if headers == nil {
+			if matchXmlHttpRequest {
+				return false
+			} else {
+				return true
+			}
+		}
+
+		requestedWith, exists := headers["X-Requested-With"]
+
+		if exists && len(requestedWith) > 0 && requestedWith[0] == "XMLHttpRequest" {
+			if matchXmlHttpRequest {
+				return true
+			} else {
+				return false
+			}
+		} else {
+			if matchXmlHttpRequest {
+				return false
+			} else {
+				return true
+			}
+		}
+	} else {
+		return true
+	}
+}
+
 func matchOptsContent(opts *RuleOpts, contentType string) bool {
 	if opts.Image != nil {
 		isImage := strings.HasPrefix(contentType, "image/")
@@ -505,6 +539,10 @@ func matchOpts(opt *RuleOpts, ctx *matchContext, rq *Request) bool {
 	if !matchOptsThirdParty(opt, rq.OriginDomain, rq.Domain) {
 		return false
 	}
+	if !matchOptsXmlHttpRequest(opt, rq.Header) {
+		return false
+	}
+
 	if ctx.genericBlock && ctx.isDomainRule == 0 && len(opt.Domains) == 0 {
 		// genericblock only applies rules with specific domains
 		return false
