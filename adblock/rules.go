@@ -98,6 +98,7 @@ type RuleOpts struct {
 	Collapse         *bool
 	Document         bool
 	Domains          []string
+	Referers         []string
 	ElemHide         bool
 	Font             *bool
 	GenericBlock     bool
@@ -160,6 +161,14 @@ func NewRuleOpts(s string) (RuleOpts, error) {
 				d = strings.TrimSpace(d)
 				opts.Domains = append(opts.Domains, d)
 			}
+		// Extension for CloudVeil for Windows
+		case strings.HasPrefix(opt, "referer="):
+			s = opt[len("referer="):]
+			for _, d := range strings.Split(s, "|") {
+				d = strings.TrimSpace(d)
+				opts.Referers = append(opts.Referers, d)
+			}
+		// End extension for CloudVeil for Windows
 		case opt == "ping":
 			opts.Ping = &value
 		case opt == "websocket":
@@ -398,6 +407,33 @@ var (
 	reSeparator = regexp.MustCompile(`^(?:[^\w\d_\-\.%]|$)`)
 )
 
+func matchOptsReferers(opts *RuleOpts, headers map[string][]string) {
+	if len(opts.Referers) == 0 {
+		return true
+	}
+
+	accept := false
+	referer, exists := headers["Referer"]
+	if !exists {
+		return false
+	}
+
+	for _, d := range opts.Referers {
+		reject := strings.HasPrefix(d, "~")
+		if reject {
+			d = d[1:]
+		}
+		if referer == d || strings.HasSuffix(domain, "."+d) {
+			if reject {
+				return false
+			}
+			accept = true
+		}
+	}
+
+	return accept
+}
+
 func matchOptsDomains(opts *RuleOpts, domain string) bool {
 	if len(opts.Domains) == 0 {
 		return true
@@ -509,6 +545,10 @@ func matchOpts(opt *RuleOpts, ctx *matchContext, rq *Request) bool {
 		// genericblock only applies rules with specific domains
 		return false
 	}
+	if !matchOptsReferers(opt, rq.Header) {
+		return false
+	}
+
 	return true
 }
 
