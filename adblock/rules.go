@@ -408,7 +408,7 @@ var (
 	reSeparator = regexp.MustCompile(`^(?:[^\w\d_\-\.%]|$)`)
 )
 
-func matchOptsReferers(opts *RuleOpts, headers map[string][]string) {
+func matchOptsReferers(opts *RuleOpts, headers map[string][]string) bool {
 	if len(opts.Referers) == 0 {
 		return true
 	}
@@ -418,17 +418,19 @@ func matchOptsReferers(opts *RuleOpts, headers map[string][]string) {
 	}
 
 	accept := false
-	referer, exists := headers["Referer"]
-	if !exists {
+	refererArray, exists := headers["Referer"]
+	if !exists || len(refererArray) == 0 {
 		return false
 	}
+
+	referer := refererArray[0]
 
 	for _, d := range opts.Referers {
 		reject := strings.HasPrefix(d, "~")
 		if reject {
 			d = d[1:]
 		}
-		if referer == d || strings.HasSuffix(domain, "."+d) {
+		if referer == d || strings.HasSuffix(referer, "."+d) {
 			if reject {
 				return false
 			}
