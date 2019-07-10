@@ -577,9 +577,9 @@ func matchOpts(opt *RuleOpts, ctx *matchContext, rq *Request) bool {
 	if !matchOptsThirdParty(opt, rq.OriginDomain, rq.Domain) {
 		return false
 	}
-	/*if !matchOptsXmlHttpRequest(opt, rq.Header) {
+	if !matchOptsXmlHttpRequest(opt, rq.Header) {
 		return false
-	}*/
+	}
 
 	if !matchOptsReferers(opt, rq.Header) {
 		return false
