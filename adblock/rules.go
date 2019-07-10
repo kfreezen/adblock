@@ -409,12 +409,8 @@ var (
 )
 
 func matchOptsReferers(opts *RuleOpts, headers map[string][]string) bool {
-	if len(opts.Referers) == 0 {
+	if len(opts.Referers) == 0 || headers == nil {
 		return true
-	}
-
-	if headers == nil {
-		return false
 	}
 
 	accept := false
@@ -581,7 +577,11 @@ func matchOpts(opt *RuleOpts, ctx *matchContext, rq *Request) bool {
 	if !matchOptsThirdParty(opt, rq.OriginDomain, rq.Domain) {
 		return false
 	}
-	if !matchOptsXmlHttpRequest(opt, rq.Header) {
+	/*if !matchOptsXmlHttpRequest(opt, rq.Header) {
+		return false
+	}*/
+
+	if !matchOptsReferers(opt, rq.Header) {
 		return false
 	}
 
@@ -589,9 +589,7 @@ func matchOpts(opt *RuleOpts, ctx *matchContext, rq *Request) bool {
 		// genericblock only applies rules with specific domains
 		return false
 	}
-	if !matchOptsReferers(opt, rq.Header) {
-		return false
-	}
+	
 
 	return true
 }
