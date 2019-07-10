@@ -318,6 +318,8 @@ type Request struct {
 	// OriginDomain is matched against optional third-party rules.
 	OriginDomain string
 
+	Header map[string][]string
+
 	// Timeout is the maximum amount of time a single matching can take.
 	Timeout   time.Duration
 	CheckFreq int
