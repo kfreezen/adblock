@@ -161,14 +161,6 @@ func NewRuleOpts(s string) (RuleOpts, error) {
 				d = strings.TrimSpace(d)
 				opts.Domains = append(opts.Domains, d)
 			}
-		// Extension for CloudVeil for Windows
-		case strings.HasPrefix(opt, "referer="):
-			s = opt[len("referer="):]
-			for _, d := range strings.Split(s, "|") {
-				d = strings.TrimSpace(d)
-				opts.Referers = append(opts.Referers, d)
-			}
-		// End extension for CloudVeil for Windows
 		case opt == "ping":
 			opts.Ping = &value
 		case opt == "websocket":
@@ -408,35 +400,6 @@ var (
 	reSeparator = regexp.MustCompile(`^(?:[^\w\d_\-\.%]|$)`)
 )
 
-func matchOptsReferers(opts *RuleOpts, headers map[string][]string) bool {
-	if len(opts.Referers) == 0 || headers == nil {
-		return true
-	}
-
-	accept := false
-	refererArray, exists := headers["Referer"]
-	if !exists || len(refererArray) == 0 {
-		return false
-	}
-
-	referer := refererArray[0]
-
-	for _, d := range opts.Referers {
-		reject := strings.HasPrefix(d, "~")
-		if reject {
-			d = d[1:]
-		}
-		if referer == d || strings.HasSuffix(referer, "."+d) {
-			if reject {
-				return false
-			}
-			accept = true
-		}
-	}
-
-	return accept
-}
-
 func matchOptsDomains(opts *RuleOpts, domain string) bool {
 	if len(opts.Domains) == 0 {
 		return true
@@ -578,10 +541,6 @@ func matchOpts(opt *RuleOpts, ctx *matchContext, rq *Request) bool {
 		return false
 	}
 	if !matchOptsXmlHttpRequest(opt, rq.Header) {
-		return false
-	}
-
-	if !matchOptsReferers(opt, rq.Header) {
 		return false
 	}
 
@@ -1015,6 +974,13 @@ func (m *RuleMatcher) AddRule(rule *Rule, ruleId int) error {
 // Match applies include and exclude rules on supplied request. If the
 // request is accepted, it returns true and the matching rule identifier.
 func (m *RuleMatcher) Match(rq *Request) (bool, int, error) {
+	if rq.Header != nil {
+		referer, ok := rq.Header["Referer"]
+		if ok {
+			rq.OriginDomain = referer[0]
+		}
+	}
+
 	copied := false
 	if rq.GenericBlock == nil {
 		_, opts, err := m.genericBlock.Match(rq)

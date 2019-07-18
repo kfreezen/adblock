@@ -12,6 +12,7 @@ type TestInput struct {
 	Matched      bool
 	ContentType  string
 	OriginDomain string
+	Header map[string][]string
 }
 
 func testInputs(t *testing.T, rules string, tests []TestInput) {
@@ -31,6 +32,7 @@ func testInputs(t *testing.T, rules string, tests []TestInput) {
 			URL:          test.URL,
 			ContentType:  test.ContentType,
 			OriginDomain: test.OriginDomain,
+			Header: test.Header,
 		}
 		if u, err := url.Parse(test.URL); err == nil {
 			rq.Domain = u.Host
@@ -89,6 +91,7 @@ func TestSeparator(t *testing.T) {
 	testInputs(t, `
 a^
 ^d
+google.com^tbm=isch
 `,
 		[]TestInput{
 			{URL: "", Matched: false},
@@ -97,6 +100,7 @@ a^
 			{URL: "a:b", Matched: true},
 			{URL: "d", Matched: false},
 			{URL: "e:d", Matched: true},
+			{URL: "https://www.google.com/search?q=cars&safe=strict&source=lnms&tbm=isch&sa=X&ved=0ahUKEwj78fbDi7fjAhVxqlkKHV2VBhYQ_AUIECgB&biw=1646&bih=887", Matched: true},
 		})
 }
 
@@ -123,6 +127,7 @@ func TestDomainAnchor(t *testing.T) {
 	testInputs(t, `
 ||ads.example.com
 ||foo.com/baz.gif
+google.com^tbm=isch
 `,
 		[]TestInput{
 			{URL: "http://ads.example.com/foo.gif", Matched: true},
@@ -186,6 +191,12 @@ func TestOptsThirdParty(t *testing.T) {
 }
 
 func TestGenericBlock(t *testing.T) {
+	header := make(map[string][]string)
+	header["Referer"] = []string{"foo.com"}
+
+	header2 := make(map[string][]string)
+	header2["Referer"] = []string{"foo.biz"}
+
 	testInputs(t, `
 ?match$domain=foo.biz
 /ads
@@ -204,11 +215,13 @@ func TestGenericBlock(t *testing.T) {
 			{URL: "http://bar.com/ads", Matched: true, OriginDomain: "bar.com"},
 			// Domain specific match
 			{URL: "http://foo.com/ads1", Matched: true, OriginDomain: "foo.com"},
+			{URL: "http://foo.com/ads1", Matched: true, Header: header},
 			{URL: "http://bar.com/ads2", Matched: true, OriginDomain: "bar.com"},
 			{URL: "http://foo.org/ads3", Matched: true, OriginDomain: "foo.org"},
 			{URL: "http://bar.org/ads3", Matched: true, OriginDomain: "bar.org"},
 			// Exclude rules ignore genericblock bit
 			{URL: "http://foo.biz/reject?match", Matched: false, OriginDomain: "foo.biz"},
+			{URL: "http://foo.biz/reject?match", Matched: false, Header: header2},
 		})
 }
 
