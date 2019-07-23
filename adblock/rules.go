@@ -161,6 +161,9 @@ func NewRuleOpts(s string) (RuleOpts, error) {
 				d = strings.TrimSpace(d)
 				opts.Domains = append(opts.Domains, d)
 			}
+		case strings.HasPrefix(opt, "referer="):
+			break
+			
 		case opt == "ping":
 			opts.Ping = &value
 		case opt == "websocket":

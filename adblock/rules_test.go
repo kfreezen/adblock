@@ -199,6 +199,7 @@ func TestGenericBlock(t *testing.T) {
 
 	testInputs(t, `
 ?match$domain=foo.biz
+?match$domain=foo.biz,referer=foo.biz
 /ads
 /ads1$domain=foo.com
 /ads2$domain=bar.com
